@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.aiinterviewcoach.auth.dto.AuthResponse;
 import com.aiinterviewcoach.auth.dto.LoginRequest;
 import com.aiinterviewcoach.auth.dto.RegisterRequest;
+import com.aiinterviewcoach.security.JwtService;
 import com.aiinterviewcoach.user.Role;
 import com.aiinterviewcoach.user.entity.User;
 import com.aiinterviewcoach.user.repository.UserRepository;
@@ -17,11 +18,12 @@ public class AuthService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final JwtService jwtService;
 
-	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-		super();
+	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.jwtService = jwtService;
 	}
 
 	public AuthResponse register(RegisterRequest request) {
@@ -36,9 +38,11 @@ public class AuthService {
 
 		User savedUser = userRepository.save(user);
 
+		String token = jwtService.generateToken(savedUser);
+
 		return AuthResponse.builder().userId(savedUser.getId()).fullName(savedUser.getFullName())
-				.email(savedUser.getEmail()).role(savedUser.getRole().name()).message("User registered successfully")
-				.build();
+				.email(savedUser.getEmail()).role(savedUser.getRole().name()).token(token)
+				.message("User registered successfully").build();
 	}
 
 	public AuthResponse login(LoginRequest request) {
@@ -52,8 +56,10 @@ public class AuthService {
 			throw new RuntimeException("Invalid email or password");
 		}
 
+		String token = jwtService.generateToken(user);
+
 		return AuthResponse.builder().userId(user.getId()).fullName(user.getFullName()).email(user.getEmail())
-				.role(user.getRole().name()).message("Login successful").build();
+				.role(user.getRole().name()).token(token).message("Login successful").build();
 	}
 
 	public AuthResponse getCurrentUser(String email) {
