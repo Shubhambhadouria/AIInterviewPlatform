@@ -4,7 +4,13 @@ import java.util.UUID;
 
 public record ProjectTechnologyResponse(
 
-		UUID id, String technologyName, String usageDescription, boolean verified
+		UUID id,
+
+		String technologyName,
+
+		String usageDescription,
+
+		boolean verified
 
 ) {
 }

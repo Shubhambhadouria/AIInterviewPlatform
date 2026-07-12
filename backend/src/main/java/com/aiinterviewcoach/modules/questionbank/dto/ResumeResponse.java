@@ -3,12 +3,23 @@ package com.aiinterviewcoach.modules.questionbank.dto;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.aiinterviewcoach.modules.questionbank.entity.ResumeStatus;
+import com.aiinterviewcoach.modules.questionbank.enums.ResumeStatus;
 
 public record ResumeResponse(
 
-		UUID id, String originalFileName, String mimeType, Long fileSize, ResumeStatus status, boolean active,
-		LocalDateTime uploadedAt, LocalDateTime parsedAt, UUID candidateProfileId
+		UUID id,
+
+		String originalFileName,
+
+		String contentType,
+
+		Long fileSize,
+
+		ResumeStatus status,
+
+		LocalDateTime uploadedAt,
+
+		LocalDateTime parsedAt
 
 ) {
 }

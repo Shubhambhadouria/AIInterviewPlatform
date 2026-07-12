@@ -18,9 +18,11 @@ public class CandidateProfileMapper {
 
 	public CandidateProfileResponse toResponse(CandidateProfile profile) {
 
-		List<CandidateSkillResponse> skills = profile.getSkills().stream().map(this::toSkillResponse).toList();
+		List<CandidateSkillResponse> skills = profile.getSkills() == null ? List.of()
+				: profile.getSkills().stream().map(this::toSkillResponse).toList();
 
-		List<CandidateProjectResponse> projects = profile.getProjects().stream().map(this::toProjectResponse).toList();
+		List<CandidateProjectResponse> projects = profile.getProjects() == null ? List.of()
+				: profile.getProjects().stream().map(this::toProjectResponse).toList();
 
 		return new CandidateProfileResponse(profile.getId(), profile.getResume().getId(), profile.getFullName(),
 				profile.getProfessionalTitle(), profile.getTotalExperienceMonths(), profile.getProfessionalSummary(),
@@ -30,25 +32,25 @@ public class CandidateProfileMapper {
 
 	private CandidateSkillResponse toSkillResponse(CandidateSkill skill) {
 
-		return new CandidateSkillResponse(skill.getId(), skill.getSkillName(), skill.getCategory(),
-				skill.getProficiency(), skill.getYearsOfExperience(), skill.getSource(), skill.getEvidence(),
-				skill.isVerified());
+		return new CandidateSkillResponse(skill.getId(), skill.getName(), skill.getCategory(), skill.getProficiency(),
+				skill.getYearsOfExperience(), skill.getSource(), skill.getEvidence(),
+				Boolean.TRUE.equals(skill.getVerified()));
 	}
 
 	private CandidateProjectResponse toProjectResponse(CandidateProject project) {
 
-		List<ProjectTechnologyResponse> technologies = project.getTechnologies().stream()
-				.map(this::toTechnologyResponse).toList();
+		List<ProjectTechnologyResponse> technologies = project.getTechnologies() == null ? List.of()
+				: project.getTechnologies().stream().map(this::toTechnologyResponse).toList();
 
 		return new CandidateProjectResponse(project.getId(), project.getProjectName(), project.getDomain(),
 				project.getProjectDescription(), project.getCandidateRole(), project.getResponsibilities(),
-				project.getBusinessImpact(), project.getStartDate(), project.getEndDate(), project.isCurrentProject(),
-				technologies);
+				project.getBusinessImpact(), project.getStartDate(), project.getEndDate(),
+				Boolean.TRUE.equals(project.getCurrentProject()), technologies);
 	}
 
 	private ProjectTechnologyResponse toTechnologyResponse(ProjectTechnology technology) {
 
 		return new ProjectTechnologyResponse(technology.getId(), technology.getTechnologyName(),
-				technology.getUsageDescription(), technology.isVerified());
+				technology.getUsageDescription(), Boolean.TRUE.equals(technology.getVerified()));
 	}
 }

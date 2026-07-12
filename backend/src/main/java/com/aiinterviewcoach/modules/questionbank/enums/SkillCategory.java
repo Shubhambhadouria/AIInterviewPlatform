@@ -1,4 +1,4 @@
-package com.aiinterviewcoach.modules.questionbank.entity;
+package com.aiinterviewcoach.modules.questionbank.enums;
 
 public enum SkillCategory {
 

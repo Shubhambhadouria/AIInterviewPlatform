@@ -46,6 +46,16 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.badRequest().body(response);
 	}
 
+	@ExceptionHandler(AiProcessingException.class)
+	public ResponseEntity<ErrorResponse> handleAiProcessingException(AiProcessingException exception,
+			HttpServletRequest request) {
+
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_GATEWAY.value(),
+				"AI Processing Error", exception.getMessage(), request.getRequestURI());
+
+		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(response);
+	}
+
 	private ResponseEntity<ErrorResponse> buildErrorResponse(HttpStatus status, String message, String path) {
 		ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(), status.value(), status.getReasonPhrase(),
 				message, path);

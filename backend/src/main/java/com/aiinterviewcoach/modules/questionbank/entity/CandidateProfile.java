@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.aiinterviewcoach.modules.user.entity.User;
+import com.aiinterviewcoach.modules.questionbank.enums.CandidateProfileStatus;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -14,16 +14,13 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,32 +28,55 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "candidate_profiles", uniqueConstraints = {
-		@UniqueConstraint(name = "uk_candidate_profile_resume", columnNames = "resume_id") })
+@Table(name = "candidate_profiles")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class CandidateProfile {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.UUID)
+	@GeneratedValue
 	private UUID id;
 
 	@OneToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "resume_id", nullable = false, unique = true)
 	private Resume resume;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "user_id", nullable = false)
-	private User user;
-
-	@Column(name = "full_name", length = 150)
+	@Column(name = "full_name")
 	private String fullName;
 
-	@Column(name = "professional_title", length = 200)
+	@Column(name = "email")
+	private String email;
+
+	@Column(name = "phone")
+	private String phone;
+
+	/*
+	 * Example: Java Backend Developer Java Full Stack Developer
+	 */
+	@Column(name = "professional_title")
 	private String professionalTitle;
+
+	/*
+	 * Current designation extracted from the resume.
+	 *
+	 * Example: Software Engineer
+	 */
+	@Column(name = "current_job_role")
+	private String currentRole;
+
+	/*
+	 * Role for which the user wants to prepare.
+	 *
+	 * Example: Senior Java Backend Developer
+	 */
+	@Column(name = "target_role")
+	private String targetRole;
+
+	@Column(name = "current_company")
+	private String currentCompany;
 
 	@Column(name = "total_experience_months")
 	private Integer totalExperienceMonths;
@@ -64,27 +84,15 @@ public class CandidateProfile {
 	@Column(name = "professional_summary", columnDefinition = "TEXT")
 	private String professionalSummary;
 
-	@Column(name = "current_company", length = 200)
-	private String currentCompany;
-
-	@Column(name = "current_job_role", length = 200)
-	private String currentRole;
-
-	@Column(name = "target_role", length = 200)
-	private String targetRole;
-
 	@Enumerated(EnumType.STRING)
-	@Column(name = "status", nullable = false, length = 30)
-	private ProfileStatus status;
+	@Column(name = "status", nullable = false)
+	private CandidateProfileStatus status;
 
+	/*
+	 * Populated when the user confirms the parsed profile.
+	 */
 	@Column(name = "confirmed_at")
 	private LocalDateTime confirmedAt;
-
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private LocalDateTime createdAt;
-
-	@Column(name = "updated_at", nullable = false)
-	private LocalDateTime updatedAt;
 
 	@OneToMany(mappedBy = "candidateProfile", cascade = CascadeType.ALL, orphanRemoval = true)
 	@Builder.Default
@@ -94,44 +102,67 @@ public class CandidateProfile {
 	@Builder.Default
 	private List<CandidateProject> projects = new ArrayList<>();
 
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private LocalDateTime createdAt;
+
+	@Column(name = "updated_at", nullable = false)
+	private LocalDateTime updatedAt;
+
 	public void addSkill(CandidateSkill skill) {
+		if (skill == null) {
+			return;
+		}
+
 		skills.add(skill);
 		skill.setCandidateProfile(this);
 	}
 
 	public void removeSkill(CandidateSkill skill) {
+		if (skill == null) {
+			return;
+		}
+
 		skills.remove(skill);
 		skill.setCandidateProfile(null);
 	}
 
 	public void addProject(CandidateProject project) {
+		if (project == null) {
+			return;
+		}
+
 		projects.add(project);
 		project.setCandidateProfile(this);
 	}
 
 	public void removeProject(CandidateProject project) {
+		if (project == null) {
+			return;
+		}
+
 		projects.remove(project);
 		project.setCandidateProfile(null);
 	}
 
-	@PrePersist
-	public void prePersist() {
+	public void clearParsedInformation() {
+		skills.clear();
+		projects.clear();
+	}
 
+	@PrePersist
+	void prePersist() {
 		LocalDateTime now = LocalDateTime.now();
 
-		if (createdAt == null) {
-			createdAt = now;
-		}
-
+		createdAt = now;
 		updatedAt = now;
 
 		if (status == null) {
-			status = ProfileStatus.DRAFT;
+			status = CandidateProfileStatus.PROCESSING;
 		}
 	}
 
 	@PreUpdate
-	public void preUpdate() {
+	void preUpdate() {
 		updatedAt = LocalDateTime.now();
 	}
 }

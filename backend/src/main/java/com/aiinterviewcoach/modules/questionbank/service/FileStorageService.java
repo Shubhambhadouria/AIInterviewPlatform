@@ -1,18 +1,17 @@
 package com.aiinterviewcoach.modules.questionbank.service;
 
+import java.util.UUID;
+
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Path;
+import com.aiinterviewcoach.modules.questionbank.dto.StoredFile;
 
 public interface FileStorageService {
 
-	StoredFile storeResume(MultipartFile file);
+	StoredFile store(MultipartFile file, UUID userId);
 
-	void deleteFile(String storedFilePath);
+	byte[] read(String storageKey);
 
-	Path resolveFile(String storedFilePath);
+	void delete(String storageKey);
 
-	record StoredFile(String originalFileName, String storedFileName, String storedFilePath, String mimeType,
-			long fileSize) {
-	}
 }

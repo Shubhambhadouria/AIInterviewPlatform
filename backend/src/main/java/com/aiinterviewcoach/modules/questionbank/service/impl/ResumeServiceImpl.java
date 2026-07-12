@@ -1,19 +1,15 @@
 package com.aiinterviewcoach.modules.questionbank.service.impl;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.aiinterviewcoach.common.exception.ResourceNotFoundException;
-import com.aiinterviewcoach.modules.questionbank.dto.ResumeResponse;
 import com.aiinterviewcoach.modules.questionbank.dto.ResumeUploadResponse;
-import com.aiinterviewcoach.modules.questionbank.entity.CandidateProfile;
-import com.aiinterviewcoach.modules.questionbank.entity.ProfileStatus;
+import com.aiinterviewcoach.modules.questionbank.dto.StoredFile;
 import com.aiinterviewcoach.modules.questionbank.entity.Resume;
-import com.aiinterviewcoach.modules.questionbank.entity.ResumeStatus;
-import com.aiinterviewcoach.modules.questionbank.mapper.ResumeMapper;
+import com.aiinterviewcoach.modules.questionbank.enums.ResumeStatus;
 import com.aiinterviewcoach.modules.questionbank.repository.ResumeRepository;
 import com.aiinterviewcoach.modules.questionbank.service.FileStorageService;
 import com.aiinterviewcoach.modules.questionbank.service.ResumeService;
@@ -30,107 +26,34 @@ public class ResumeServiceImpl implements ResumeService {
 	private final ResumeRepository resumeRepository;
 	private final UserRepository userRepository;
 	private final FileStorageService fileStorageService;
-	private final ResumeMapper resumeMapper;
 
 	@Override
 	@Transactional
-	public ResumeUploadResponse uploadResume(MultipartFile file, String userEmail) {
-
+	public ResumeUploadResponse upload(MultipartFile file, String userEmail) {
 		User user = userRepository.findByEmail(userEmail)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + userEmail));
 
-		FileStorageService.StoredFile storedFile = fileStorageService.storeResume(file);
-
+		StoredFile storedFile = fileStorageService.store(file, user.getId());
 		try {
-			deactivateExistingResumes(userEmail);
-
 			Resume resume = Resume.builder().user(user).originalFileName(storedFile.originalFileName())
-					.storedFileName(storedFile.storedFileName()).storedFilePath(storedFile.storedFilePath())
-					.mimeType(storedFile.mimeType()).fileSize(storedFile.fileSize()).status(ResumeStatus.UPLOADED)
-					.active(true).build();
-
-			CandidateProfile candidateProfile = CandidateProfile.builder().resume(resume).user(user)
-					.fullName(user.getFullName()).status(ProfileStatus.DRAFT).build();
-
-			resume.setCandidateProfile(candidateProfile);
-
-			Resume savedResume = resumeRepository.save(resume);
-
-			return resumeMapper.toUploadResponse(savedResume);
-
-		} catch (RuntimeException exception) {
-
-			fileStorageService.deleteFile(storedFile.storedFilePath());
-
-			throw exception;
+					.storedFileName(storedFile.storedFileName()).storageKey(storedFile.storageKey())
+					.contentType(storedFile.contentType()).fileSize(storedFile.fileSize()).status(ResumeStatus.UPLOADED)
+					.build();
+			Resume saved = resumeRepository.save(resume);
+			return new ResumeUploadResponse(saved.getId(), saved.getOriginalFileName(), saved.getContentType(),
+					saved.getFileSize(), saved.getStatus(), saved.getCreatedAt(), saved.getParsedAt(), "Resume uploaded successfully.");
+		} catch (RuntimeException ex) {
+			fileStorageService.delete(storedFile.storageKey());
+			throw ex;
 		}
 	}
 
 	@Override
 	@Transactional
-	public List<ResumeResponse> getUserResumes(String userEmail) {
-
-		return resumeRepository.findAllByUserEmailOrderByUploadedAtDesc(userEmail).stream()
-				.map(resumeMapper::toResponse).toList();
-	}
-
-	@Override
-	@Transactional
-	public ResumeResponse getResume(UUID resumeId, String userEmail) {
-
-		Resume resume = getOwnedResume(resumeId, userEmail);
-
-		return resumeMapper.toResponse(resume);
-	}
-
-	@Override
-	@Transactional
-	public void activateResume(UUID resumeId, String userEmail) {
-
-		Resume resumeToActivate = getOwnedResume(resumeId, userEmail);
-
-		deactivateExistingResumes(userEmail);
-
-		resumeToActivate.setActive(true);
-
-		resumeRepository.save(resumeToActivate);
-	}
-
-	@Override
-	@Transactional
-	public void deleteResume(UUID resumeId, String userEmail) {
-
-		Resume resume = getOwnedResume(resumeId, userEmail);
-
-		String storedFilePath = resume.getStoredFilePath();
-
+	public void delete(UUID resumeId, String userEmail) {
+		Resume resume = resumeRepository.findByIdAndUserEmail(resumeId, userEmail)
+				.orElseThrow(() -> new ResourceNotFoundException("Resume not found with id: " + resumeId));
 		resumeRepository.delete(resume);
-
-		fileStorageService.deleteFile(storedFilePath);
-	}
-
-	private Resume getOwnedResume(UUID resumeId, String userEmail) {
-
-		return resumeRepository.findByIdAndUserEmail(resumeId, userEmail)
-				.orElseThrow(() -> new ResourceNotFoundException("Resume not found"));
-	}
-
-	private void deactivateExistingResumes(String userEmail) {
-
-		List<Resume> resumes = resumeRepository.findAllByUserEmailOrderByUploadedAtDesc(userEmail);
-
-		boolean changed = false;
-
-		for (Resume resume : resumes) {
-
-			if (resume.isActive()) {
-				resume.setActive(false);
-				changed = true;
-			}
-		}
-
-		if (changed) {
-			resumeRepository.saveAll(resumes);
-		}
+		fileStorageService.delete(resume.getStorageKey());
 	}
 }

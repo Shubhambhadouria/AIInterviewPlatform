@@ -1,16 +1,19 @@
 package com.aiinterviewcoach.modules.questionbank.repository;
 
-import com.aiinterviewcoach.modules.questionbank.entity.CandidateProfile;
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.aiinterviewcoach.modules.questionbank.entity.CandidateProfile;
+
 public interface CandidateProfileRepository extends JpaRepository<CandidateProfile, UUID> {
 
-	Optional<CandidateProfile> findByResumeIdAndUserEmail(UUID resumeId, String userEmail);
+	Optional<CandidateProfile> findByResumeId(UUID resumeId);
 
-	Optional<CandidateProfile> findByIdAndUserEmail(UUID profileId, String userEmail);
+	Optional<CandidateProfile> findByResumeIdAndResumeUserEmail(UUID resumeId, String email);
 
-	Optional<CandidateProfile> findFirstByUserEmailOrderByUpdatedAtDesc(String userEmail);
+	Optional<CandidateProfile> findFirstByResumeUserEmailOrderByUpdatedAtDesc(String email);
+
+	Optional<CandidateProfile> findByIdAndResumeUserEmail(UUID profileId, String email);
 }

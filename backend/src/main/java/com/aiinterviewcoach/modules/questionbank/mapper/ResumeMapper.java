@@ -11,17 +11,13 @@ public class ResumeMapper {
 
 	public ResumeUploadResponse toUploadResponse(Resume resume) {
 
-		return new ResumeUploadResponse(resume.getId(),
-				resume.getCandidateProfile() != null ? resume.getCandidateProfile().getId() : null,
-				resume.getOriginalFileName(), resume.getMimeType(), resume.getFileSize(), resume.getStatus(),
-				resume.getUploadedAt(), "Resume uploaded successfully");
+		return new ResumeUploadResponse(resume.getId(), resume.getOriginalFileName(), resume.getContentType(),
+				resume.getFileSize(), resume.getStatus(), resume.getCreatedAt(),resume.getParsedAt(), "Resume uploaded successfully");
 	}
 
 	public ResumeResponse toResponse(Resume resume) {
 
-		return new ResumeResponse(resume.getId(), resume.getOriginalFileName(), resume.getMimeType(),
-				resume.getFileSize(), resume.getStatus(), resume.isActive(), resume.getUploadedAt(),
-				resume.getParsedAt(),
-				resume.getCandidateProfile() != null ? resume.getCandidateProfile().getId() : null);
+		return new ResumeResponse(resume.getId(), resume.getOriginalFileName(), resume.getContentType(),
+				resume.getFileSize(), resume.getStatus(), resume.getCreatedAt(), resume.getParsedAt());
 	}
 }
