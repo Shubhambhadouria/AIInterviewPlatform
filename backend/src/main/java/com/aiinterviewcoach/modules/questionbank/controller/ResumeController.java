@@ -3,6 +3,7 @@ package com.aiinterviewcoach.modules.questionbank.controller;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,7 +29,7 @@ public class ResumeController {
 	private final ResumeService resumeService;
 	private final ResumeParsingService resumeParsingService;
 
-	@PostMapping("/upload")
+	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<ResumeUploadResponse> upload(@RequestPart("file") MultipartFile file,
 			Authentication authentication) {
 

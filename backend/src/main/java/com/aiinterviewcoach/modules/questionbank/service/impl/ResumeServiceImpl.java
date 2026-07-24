@@ -35,9 +35,9 @@ public class ResumeServiceImpl implements ResumeService {
 
 		StoredFile storedFile = fileStorageService.store(file, user.getId());
 		try {
-			Resume resume = Resume.builder().user(user).originalFileName(storedFile.originalFileName())
-					.storedFileName(storedFile.storedFileName()).storageKey(storedFile.storageKey())
-					.contentType(storedFile.contentType()).fileSize(storedFile.fileSize()).status(ResumeStatus.UPLOADED)
+			Resume resume = Resume.builder().user(user).originalFileName(storedFile.originalFilename())
+					.storedFileName(storedFile.originalFilename()).storageKey(storedFile.storageKey())
+					.contentType(storedFile.contentType()).fileSize(storedFile.size()).status(ResumeStatus.UPLOADED)
 					.build();
 			Resume saved = resumeRepository.save(resume);
 			return new ResumeUploadResponse(saved.getId(), saved.getOriginalFileName(), saved.getContentType(),

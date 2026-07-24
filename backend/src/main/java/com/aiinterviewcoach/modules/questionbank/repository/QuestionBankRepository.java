@@ -5,10 +5,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import com.aiinterviewcoach.modules.questionbank.entity.QuestionBank;
-public interface QuestionBankRepository extends JpaRepository<QuestionBank, UUID> {
-    Optional<QuestionBank> findByIdAndUserEmail(UUID questionBankId, String email);
-    List<QuestionBank> findAllByUserEmailOrderByCreatedAtDesc(String email);
-}
 
+@Repository
+public interface QuestionBankRepository extends JpaRepository<QuestionBank, UUID> {
+	Optional<QuestionBank> findByIdAndUserEmail(UUID questionBankId, String email);
+
+	List<QuestionBank> findAllByUserEmailOrderByCreatedAtDesc(String email);
+}

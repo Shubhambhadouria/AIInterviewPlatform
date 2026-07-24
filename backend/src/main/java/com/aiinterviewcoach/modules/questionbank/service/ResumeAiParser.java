@@ -1,7 +1,7 @@
 package com.aiinterviewcoach.modules.questionbank.service;
 
-import com.aiinterviewcoach.modules.questionbank.dto.ResumeParseResult;
+import com.aiinterviewcoach.modules.questionbank.entity.CandidateProfile;
 
 public interface ResumeAiParser {
-	ResumeParseResult parse(String resumeText);
+	CandidateProfile parse(byte[] fileContent, String contentType);
 }

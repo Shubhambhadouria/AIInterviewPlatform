@@ -14,4 +14,6 @@ public interface FileStorageService {
 
 	void delete(String storageKey);
 
+	StoredFile store(MultipartFile file);
+
 }

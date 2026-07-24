@@ -3,7 +3,9 @@ package com.aiinterviewcoach.modules.questionbank.service.impl;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -11,99 +13,154 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.aiinterviewcoach.common.exception.BadRequestException;
 import com.aiinterviewcoach.modules.questionbank.dto.StoredFile;
 import com.aiinterviewcoach.modules.questionbank.exception.FileStorageException;
 import com.aiinterviewcoach.modules.questionbank.service.FileStorageService;
 
-import jakarta.annotation.PostConstruct;
-
 @Service
 public class LocalFileStorageServiceImpl implements FileStorageService {
 
-	private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf",
+	private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf", "application/msword",
 			"application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-	private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-	@Value("${app.file-storage.resume-directory}")
-	private String resumeDirectory;
+	private final Path uploadDirectory;
 
-	private Path rootDirectory;
+	public LocalFileStorageServiceImpl(@Value("${app.file.upload-dir:uploads/resumes}") String uploadDir) {
 
-	@PostConstruct
-	void initialize() {
+		this.uploadDirectory = Paths.get(uploadDir).toAbsolutePath().normalize();
+
 		try {
-			rootDirectory = Path.of(resumeDirectory).toAbsolutePath().normalize();
-			Files.createDirectories(rootDirectory);
+			Files.createDirectories(this.uploadDirectory);
 		} catch (IOException exception) {
-			throw new FileStorageException("Unable to initialize resume storage directory", exception);
+			throw new FileStorageException("Could not create upload directory: " + this.uploadDirectory, exception);
+		}
+	}
+
+	@Override
+	public StoredFile store(MultipartFile file) {
+		validateFile(file);
+
+		try {
+			String originalFilename = Optional.ofNullable(file.getOriginalFilename()).orElse("resume");
+
+			String extension = getExtension(originalFilename);
+			String storedFilename = UUID.randomUUID() + extension;
+
+			Path destination = uploadDirectory.resolve(storedFilename).normalize();
+
+			validateDestination(destination, uploadDirectory);
+
+			Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+
+			return new StoredFile(storedFilename, originalFilename, file.getContentType(), file.getSize());
+
+		} catch (IOException exception) {
+			throw new FileStorageException("Failed to store file: " + file.getOriginalFilename(), exception);
 		}
 	}
 
 	@Override
 	public StoredFile store(MultipartFile file, UUID userId) {
 		validateFile(file);
-		String originalFileName = sanitizeFileName(file.getOriginalFilename());
-		String extension = getFileExtension(originalFileName);
-		String storedFileName = UUID.randomUUID() + extension;
-		String storageKey = "resumes/" + userId + "/" + storedFileName;
-		Path targetPath = resolveStoragePath(storageKey);
+
+		if (userId == null) {
+			throw new FileStorageException("User ID cannot be null");
+		}
 
 		try {
-			Files.createDirectories(targetPath.getParent());
-			Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-			return new StoredFile(originalFileName, storedFileName, storageKey, file.getContentType(), file.getSize());
+			Path userUploadDirectory = uploadDirectory.resolve(userId.toString()).normalize();
+
+			validateDestination(userUploadDirectory, uploadDirectory);
+
+			Files.createDirectories(userUploadDirectory);
+
+			String originalFilename = Optional.ofNullable(file.getOriginalFilename()).orElse("resume");
+
+			String extension = getExtension(originalFilename);
+			String storedFilename = UUID.randomUUID() + extension;
+
+			Path destination = userUploadDirectory.resolve(storedFilename).normalize();
+
+			validateDestination(destination, userUploadDirectory);
+
+			Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+
+			String storageKey = userId + "/" + storedFilename;
+
+			return new StoredFile(storageKey, originalFilename, file.getContentType(), file.getSize());
+
 		} catch (IOException exception) {
-			throw new FileStorageException("Failed to store resume file", exception);
+			throw new FileStorageException("Failed to store file: " + file.getOriginalFilename(), exception);
 		}
 	}
 
 	@Override
 	public byte[] read(String storageKey) {
 		Path filePath = resolveStoragePath(storageKey);
-		if (!Files.exists(filePath)) {
-			throw new FileStorageException("Stored resume file does not exist");
+
+		if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+			throw new FileStorageException("File not found for storage key: " + storageKey);
 		}
+
 		try {
 			return Files.readAllBytes(filePath);
 		} catch (IOException exception) {
-			throw new FileStorageException("Failed to read stored resume", exception);
+			throw new FileStorageException("Failed to read file: " + storageKey, exception);
 		}
 	}
 
 	@Override
 	public void delete(String storageKey) {
+		Path filePath = resolveStoragePath(storageKey);
+
 		try {
-			Files.deleteIfExists(resolveStoragePath(storageKey));
+			boolean deleted = Files.deleteIfExists(filePath);
+
+			if (!deleted) {
+				throw new FileStorageException("File not found for storage key: " + storageKey);
+			}
 		} catch (IOException exception) {
-			throw new FileStorageException("Failed to delete stored resume", exception);
+			throw new FileStorageException("Failed to delete file: " + storageKey, exception);
 		}
 	}
 
 	private void validateFile(MultipartFile file) {
-		if (file == null || file.isEmpty())
-			throw new BadRequestException("Resume file must not be empty");
-		if (file.getSize() > MAX_FILE_SIZE)
-			throw new BadRequestException("Resume file must not exceed 10 MB");
-		if (file.getContentType() == null || !ALLOWED_CONTENT_TYPES.contains(file.getContentType()))
-			throw new BadRequestException("Only PDF and DOCX resume files are supported");
+		if (file == null || file.isEmpty()) {
+			throw new FileStorageException("Resume file cannot be empty");
+		}
+
+		String contentType = file.getContentType();
+
+		if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+			throw new FileStorageException("Only PDF, DOC, and DOCX files are supported");
+		}
+	}
+
+	private String getExtension(String filename) {
+		int dotIndex = filename.lastIndexOf('.');
+
+		if (dotIndex == -1) {
+			return "";
+		}
+
+		return filename.substring(dotIndex).toLowerCase();
 	}
 
 	private Path resolveStoragePath(String storageKey) {
-		Path resolvedPath = rootDirectory.resolve(storageKey).normalize();
-		if (!resolvedPath.startsWith(rootDirectory))
+		if (storageKey == null || storageKey.isBlank()) {
+			throw new FileStorageException("Storage key cannot be empty");
+		}
+
+		Path filePath = uploadDirectory.resolve(storageKey).normalize();
+
+		validateDestination(filePath, uploadDirectory);
+
+		return filePath;
+	}
+
+	private void validateDestination(Path destination, Path parentDirectory) {
+		if (!destination.startsWith(parentDirectory)) {
 			throw new FileStorageException("Invalid file storage path");
-		return resolvedPath;
-	}
-
-	private String sanitizeFileName(String fileName) {
-		if (fileName == null || fileName.isBlank())
-			return "resume";
-		return Path.of(fileName).getFileName().toString().replaceAll("[^a-zA-Z0-9._-]", "_");
-	}
-
-	private String getFileExtension(String fileName) {
-		int lastDot = fileName.lastIndexOf('.');
-		return lastDot < 0 ? "" : fileName.substring(lastDot).toLowerCase();
+		}
 	}
 }
