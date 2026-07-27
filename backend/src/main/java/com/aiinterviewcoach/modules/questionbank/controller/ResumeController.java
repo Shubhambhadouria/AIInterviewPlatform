@@ -39,7 +39,7 @@ public class ResumeController {
 	}
 
 	@PostMapping("/{resumeId}/parse")
-	public ResponseEntity<ResumeParseResponse> parse(@PathVariable UUID resumeId, Authentication authentication) {
+	public ResponseEntity<ResumeParseResponse> parse(@PathVariable("resumeId") UUID resumeId, Authentication authentication) {
 
 		ResumeParseResponse response = resumeParsingService.parse(resumeId, authentication.getName());
 

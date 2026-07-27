@@ -21,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class QuestionBankController {
 	private final QuestionBankService questionBankService;
 
-	@PostMapping
+	@PostMapping("/generate")
 	public ResponseEntity<QuestionBankSummaryResponse> generate(@Valid @RequestBody GenerateQuestionBankRequest request,
 			Authentication authentication) {
 		return ResponseEntity.status(HttpStatus.CREATED)
