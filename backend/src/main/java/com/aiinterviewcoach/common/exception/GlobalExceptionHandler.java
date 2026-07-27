@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.aiinterviewcoach.modules.questionbank.exception.FileStorageException;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
@@ -32,6 +34,26 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
 		return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again later.",
 				request.getRequestURI());
+	}
+
+	@ExceptionHandler(FileStorageException.class)
+	public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException exception,
+			HttpServletRequest request) {
+
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
+				"File Storage Error", exception.getMessage(), request.getRequestURI());
+
+		return ResponseEntity.badRequest().body(response);
+	}
+
+	@ExceptionHandler(AiProcessingException.class)
+	public ResponseEntity<ErrorResponse> handleAiProcessingException(AiProcessingException exception,
+			HttpServletRequest request) {
+
+		ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.BAD_GATEWAY.value(),
+				"AI Processing Error", exception.getMessage(), request.getRequestURI());
+
+		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(response);
 	}
 
 	private ResponseEntity<ErrorResponse> buildErrorResponse(HttpStatus status, String message, String path) {
