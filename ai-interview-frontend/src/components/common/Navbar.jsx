@@ -21,10 +21,11 @@ function Navbar() {
           <>
             <Link to="/dashboard">Dashboard</Link>
             <Link to="/interview/start">Start Interview</Link>
+            <Link to="/resume-preparation">Resume Preparation</Link>
 
-            <span className="user-email">
-              {user?.fullName || user?.email}
-            </span>
+            <Link to="/question-bank/new">Question Bank</Link>
+
+            <span className="user-email">{user?.fullName || user?.email}</span>
 
             <button
               type="button"
