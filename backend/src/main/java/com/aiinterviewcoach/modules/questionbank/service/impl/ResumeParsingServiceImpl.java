@@ -3,6 +3,7 @@ package com.aiinterviewcoach.modules.questionbank.service.impl;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +58,6 @@ public class ResumeParsingServiceImpl implements ResumeParsingService {
 					"Resume parsed successfully.");
 
 		} catch (RuntimeException exception) {
-
 			resume.setStatus(ResumeStatus.PARSING_FAILED);
 			resumeRepository.save(resume);
 
@@ -71,18 +71,45 @@ public class ResumeParsingServiceImpl implements ResumeParsingService {
 
 		byte[] fileContent = fileStorageService.read(resume.getStorageKey());
 
-		CandidateProfile candidateProfile = resumeAiParser.parse(fileContent, resume.getContentType());
+		CandidateProfile parsedProfile = resumeAiParser.parse(fileContent, resume.getContentType());
 
+		CandidateProfile candidateProfile = candidateProfileRepository.findByResumeId(resume.getId())
+				.orElseGet(CandidateProfile::new);
+
+		// Update simple fields explicitly
 		candidateProfile.setResume(resume);
 		candidateProfile.setFullName(resume.getUser().getFullName());
+		candidateProfile.setEmail(parsedProfile.getEmail());
+		candidateProfile.setProfessionalTitle(parsedProfile.getProfessionalTitle());
+		candidateProfile.setProfessionalSummary(parsedProfile.getProfessionalSummary());
+		candidateProfile.setTotalExperienceMonths(parsedProfile.getTotalExperienceMonths());
 		candidateProfile.setStatus(CandidateProfileStatus.REVIEW_REQUIRED);
+
+		// Preserve the existing Hibernate-managed collection instance
+		candidateProfile.getProjects().clear();
+
+		if (parsedProfile.getProjects() != null) {
+			parsedProfile.getProjects().forEach(project -> {
+				project.setCandidateProfile(candidateProfile);
+				candidateProfile.getProjects().add(project);
+			});
+		}
+
+		// Do the same for skills if orphanRemoval is enabled
+		candidateProfile.getSkills().clear();
+
+		if (parsedProfile.getSkills() != null) {
+			parsedProfile.getSkills().forEach(skill -> {
+				skill.setCandidateProfile(candidateProfile);
+				candidateProfile.getSkills().add(skill);
+			});
+		}
 
 		return candidateProfileRepository.save(candidateProfile);
 	}
 
 	@Override
 	public ResumeParseResponse parseResume(UUID resumeId, String userEmail) {
-		// TODO Auto-generated method stub
-		return null;
+		return parse(resumeId, userEmail);
 	}
 }

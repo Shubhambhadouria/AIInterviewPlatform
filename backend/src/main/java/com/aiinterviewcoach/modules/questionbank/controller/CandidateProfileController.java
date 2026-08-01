@@ -35,7 +35,7 @@ public class CandidateProfileController {
 	@GetMapping("/resume/{resumeId}")
 	public CandidateProfileResponse getProfileByResume(
 
-			@PathVariable UUID resumeId,
+			@PathVariable("resumeId") UUID resumeId,
 
 			@Parameter(hidden = true) Authentication authentication) {
 

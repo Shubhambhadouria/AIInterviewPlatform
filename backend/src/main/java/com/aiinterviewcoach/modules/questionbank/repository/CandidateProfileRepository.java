@@ -16,4 +16,7 @@ public interface CandidateProfileRepository extends JpaRepository<CandidateProfi
 	Optional<CandidateProfile> findFirstByResumeUserEmailOrderByUpdatedAtDesc(String email);
 
 	Optional<CandidateProfile> findByIdAndResumeUserEmail(UUID profileId, String email);
+	
+	boolean existsByResumeId(UUID resumeId);
+
 }
