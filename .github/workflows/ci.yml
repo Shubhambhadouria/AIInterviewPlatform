@@ -43,7 +43,7 @@ jobs:
       - run: node scripts/smoke.mjs http://127.0.0.1:8080
       - run: docker compose logs --tail=100 && docker compose down -v
         if: always()
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: backend-test-results
