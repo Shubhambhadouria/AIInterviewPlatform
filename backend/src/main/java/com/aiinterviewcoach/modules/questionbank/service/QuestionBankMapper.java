@@ -42,7 +42,40 @@ public class QuestionBankMapper {
 	}
 
 	public void mapGeneratedContent(QuestionBank savedQuestionBank, GeneratedQuestionBank generatedQuestionBank) {
-		// TODO Auto-generated method stub
-		
+		savedQuestionBank.getSections().clear();
+		int order = 0;
+		for (var generatedSection : generatedQuestionBank.sections()) {
+			if (generatedSection == null || generatedSection.name() == null || generatedSection.name().isBlank())
+				throw new com.aiinterviewcoach.common.exception.AiProcessingException("AI returned an invalid section");
+			var section = com.aiinterviewcoach.modules.questionbank.entity.QuestionSection.builder()
+				.name(generatedSection.name()).category(generatedSection.category()).displayOrder(++order).build();
+			for (var generated : generatedSection.questions()) {
+				if (generated == null || generated.questionText() == null || generated.questionText().isBlank() ||
+					generated.answer() == null || generated.answer().shortAnswer() == null || generated.answer().detailedAnswer() == null)
+					throw new com.aiinterviewcoach.common.exception.AiProcessingException("AI returned an incomplete question or answer");
+				com.aiinterviewcoach.modules.questionbank.enums.QuestionDifficulty difficulty;
+				try { difficulty = com.aiinterviewcoach.modules.questionbank.enums.QuestionDifficulty.valueOf(generated.difficulty()); }
+				catch (Exception ex) { throw new com.aiinterviewcoach.common.exception.AiProcessingException("AI returned invalid difficulty"); }
+				var question = com.aiinterviewcoach.modules.questionbank.entity.PreparationQuestion.builder()
+					.questionText(generated.questionText()).difficulty(difficulty).questionType(generated.questionType())
+					.sourceSkill(generated.sourceSkill()).sourceProject(generated.sourceProject()).resumeRelevance(generated.resumeRelevance()).build();
+				var answer = new com.aiinterviewcoach.modules.questionbank.entity.PreparationAnswer();
+				answer.setShortAnswer(generated.answer().shortAnswer());
+				answer.setDetailedAnswer(generated.answer().detailedAnswer());
+				answer.setInternalWorking(generated.answer().internalWorking());
+				answer.setCodeExample(generated.answer().codeExample());
+				answer.setProjectUsage(generated.answer().projectUsage());
+				answer.setStarAnswer(generated.answer().starAnswer());
+				answer.setBusinessImpact(generated.answer().businessImpact());
+				answer.setFollowUpQuestions(generated.answer().followUpQuestions());
+				answer.setCommonMistakes(generated.answer().commonMistakes());
+				answer.setWhatNotToSay(generated.answer().whatNotToSay());
+				answer.setProductCompanyExpectation(generated.answer().productCompanyExpectation());
+				answer.setServiceCompanyExpectation(generated.answer().serviceCompanyExpectation());
+				question.setAnswer(answer);
+				section.addQuestion(question);
+			}
+			savedQuestionBank.addSection(section);
+		}
 	}
 }

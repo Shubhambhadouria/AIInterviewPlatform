@@ -32,7 +32,7 @@ public class ResumeParsingServiceImpl implements ResumeParsingService {
 	private final CandidateProfileRepository candidateProfileRepository;
 
 	@Override
-	@Transactional
+	@Transactional(noRollbackFor = RuntimeException.class)
 	public ResumeParseResponse parse(UUID resumeId, String userEmail) {
 
 		Resume resume = resumeRepository.findByIdAndUserEmail(resumeId, userEmail)
@@ -79,7 +79,10 @@ public class ResumeParsingServiceImpl implements ResumeParsingService {
 		// Update simple fields explicitly
 		candidateProfile.setResume(resume);
 		candidateProfile.setFullName(resume.getUser().getFullName());
-		candidateProfile.setEmail(parsedProfile.getEmail());
+		candidateProfile.setEmail(parsedProfile.getEmail() == null ? resume.getUser().getEmail() : parsedProfile.getEmail());
+		candidateProfile.setCurrentCompany(parsedProfile.getCurrentCompany());
+		candidateProfile.setCurrentRole(parsedProfile.getCurrentRole());
+		candidateProfile.setTargetRole(parsedProfile.getProfessionalTitle());
 		candidateProfile.setProfessionalTitle(parsedProfile.getProfessionalTitle());
 		candidateProfile.setProfessionalSummary(parsedProfile.getProfessionalSummary());
 		candidateProfile.setTotalExperienceMonths(parsedProfile.getTotalExperienceMonths());

@@ -95,7 +95,8 @@ public class CandidateProfileServiceImpl implements CandidateProfileService {
 
 	private CandidateProfile getOwnedProfile(UUID resumeId, String userEmail) {
 
-		return candidateProfileRepository.findByResumeIdAndResumeUserEmail(resumeId, userEmail)
+		return candidateProfileRepository.findByIdAndResumeUserEmail(resumeId, userEmail)
+				.or(() -> candidateProfileRepository.findByResumeIdAndResumeUserEmail(resumeId, userEmail))
 				.orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found"));
 	}
 

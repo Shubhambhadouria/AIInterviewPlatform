@@ -1,146 +1,41 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
-import { generateQuestionBank } from "../../api/questionBankApi";
-import QuestionBankSummaryCard from "../../components/resume/QuestionBankSummaryCard";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
+import api from "../../api/axiosInstance";
 import "../../styles/resume-preparation.css";
-
-const DEFAULT_SECTIONS = [
-  "Java",
-  "Spring Boot",
-  "Microservices",
-  "SQL",
-  "React",
-  "AWS",
-];
-
 export default function QuestionBankPage() {
-  const [searchParams] = useSearchParams();
-  const initialProfileId = searchParams.get("candidateProfileId") || "";
-  const [candidateProfileId, setCandidateProfileId] =
-    useState(initialProfileId);
-  const [title, setTitle] = useState("Resume-based interview preparation");
-  const [selectedSections, setSelectedSections] = useState([
-    "Java",
-    "Spring Boot",
-    "SQL",
-  ]);
-  const [questionCount, setQuestionCount] = useState(30);
-  const [questionBank, setQuestionBank] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const canSubmit = useMemo(
-    () =>
-      candidateProfileId.trim() &&
-      selectedSections.length > 0 &&
-      questionCount > 0,
-    [candidateProfileId, selectedSections, questionCount],
-  );
-
-  const toggleSection = (section) => {
-    setSelectedSections((current) =>
-      current.includes(section)
-        ? current.filter((item) => item !== section)
-        : [...current, section],
-    );
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const [profile,setProfile] = useState(null);
+  const [count,setCount] = useState(5);
+  const [projects,setProjects] = useState(true);
+  const [behavioural,setBehavioural] = useState(true);
+  const [busy,setBusy] = useState(false);
+  const [error,setError] = useState("");
+  const profileId = params.get("candidateProfileId");
+  useEffect(() => {
+    let active=true;
+    api.get(profileId ? `/candidate-profiles/${profileId}` : "/candidate-profiles/latest")
+      .then(({data}) => {if(active) setProfile(data);})
+      .catch(err => {if(active) setError(err.response?.status === 404 ? "Upload and review your resume first." : err.response?.data?.message || err.message);});
+    return () => {active=false;};
+  },[profileId]);
+  async function generate(e) {
+    e.preventDefault();setBusy(true);setError("");
     try {
-      setLoading(true);
-      setError("");
-
-      // Rename these fields if your GenerateQuestionBankRequest uses different names.
-      const response = await generateQuestionBank({
-        candidateProfileId,
-        title,
-        categories: selectedSections,
-        totalQuestions: Number(questionCount),
-      });
-
-      setQuestionBank(response);
-    } catch (requestError) {
-      setError(
-        requestError?.response?.data?.message ||
-          requestError?.message ||
-          "Question bank generation failed.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <main className="resume-page">
-      <section className="resume-hero">
-        <p className="eyebrow">Question bank generator</p>
-        <h1>Create role- and project-focused questions</h1>
-        <p>
-          Select the sections you want to prepare and submit the parsed profile
-          ID.
-        </p>
-      </section>
-
-      <form className="resume-card form-stack" onSubmit={handleSubmit}>
-        <label>
-          Candidate profile ID
-          <input
-            value={candidateProfileId}
-            onChange={(event) => setCandidateProfileId(event.target.value)}
-            placeholder="UUID returned by resume parsing"
-            required
-          />
-        </label>
-
-        <label>
-          Question bank title
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            required
-          />
-        </label>
-
-        <div>
-          <span className="field-label">Sections</span>
-          <div className="checkbox-grid">
-            {DEFAULT_SECTIONS.map((section) => (
-              <label className="checkbox-card" key={section}>
-                <input
-                  type="checkbox"
-                  checked={selectedSections.includes(section)}
-                  onChange={() => toggleSection(section)}
-                />
-                <span>{section}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <label>
-          Total questions
-          <input
-            type="number"
-            min="1"
-            max="100"
-            value={questionCount}
-            onChange={(event) => setQuestionCount(event.target.value)}
-          />
-        </label>
-
-        {error && <div className="alert alert--error">{error}</div>}
-
-        <button
-          className="button button--primary"
-          type="submit"
-          disabled={!canSubmit || loading}
-        >
-          {loading ? "Generating…" : "Generate question bank"}
-        </button>
-      </form>
-
-      <QuestionBankSummaryCard questionBank={questionBank} />
-    </main>
-  );
+      const {data} = await api.post("/question-banks/generate",{candidateProfileId:profile.id,questionsPerSection:count,includeProjectQuestions:projects,includeBehaviouralQuestions:behavioural});
+      navigate(`/question-banks/${data.questionBankId}`);
+    } catch(err) {setError(err.response?.data?.message || err.message);} finally {setBusy(false);}
+  }
+  return <main className="resume-page"><section className="resume-hero"><p className="eyebrow">Personalized preparation</p><h1>Generate your question bank</h1><p>Build technical, project and behavioural questions from your confirmed profile.</p></section>
+    {error && <p className="alert alert--error" role="alert">{error}</p>}
+    {profile ? <form className="resume-card form-stack" onSubmit={generate}>
+      <h2>{profile.fullName} · {profile.targetRole || profile.professionalTitle}</h2>
+      {profile.status !== "CONFIRMED" ? <><p>Review and confirm your profile before generating questions.</p><button type="button" className="button button-primary" onClick={() => navigate(`/candidate-profiles/${profile.id}/review`)}>Review profile</button></> : <>
+        <label>Questions per section<input type="number" min="1" max="20" required value={count} onChange={e => setCount(Number(e.target.value))} /></label>
+        <label><input type="checkbox" checked={projects} onChange={e => setProjects(e.target.checked)} /> Include project questions</label>
+        <label><input type="checkbox" checked={behavioural} onChange={e => setBehavioural(e.target.checked)} /> Include behavioural questions</label>
+        <button disabled={busy} className="button button-primary">{busy ? "Generating your preparation bank..." : "Generate questions"}</button>
+      </>}
+    </form> : <button className="button button-primary" onClick={() => navigate("/resume-preparation")}>Upload resume</button>}
+  </main>;
 }

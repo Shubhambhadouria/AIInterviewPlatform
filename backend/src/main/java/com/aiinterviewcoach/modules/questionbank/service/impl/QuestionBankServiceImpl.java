@@ -36,7 +36,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 	private final QuestionBankMapper questionBankMapper;
 
 	@Override
-	@Transactional
+	@Transactional(noRollbackFor = RuntimeException.class)
 	public QuestionBankSummaryResponse generate(GenerateQuestionBankRequest request, String userEmail) {
 
 		CandidateProfile profile = candidateProfileRepository
@@ -58,7 +58,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 
 			questionBankMapper.mapGeneratedContent(savedQuestionBank, generatedQuestionBank);
 
-			savedQuestionBank.setStatus(QuestionBankStatus.REVIEW_REQUIRED);
+			savedQuestionBank.setStatus(QuestionBankStatus.READY);
 			savedQuestionBank.setGeneratedAt(LocalDateTime.now());
 			savedQuestionBank.setGenerationError(null);
 
@@ -74,6 +74,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
 					"Question bank generated successfully");
 
 		} catch (RuntimeException exception) {
+			savedQuestionBank.getSections().clear();
 
 			savedQuestionBank.setStatus(QuestionBankStatus.GENERATION_FAILED);
 			savedQuestionBank.setGenerationError(limitErrorMessage(exception.getMessage()));

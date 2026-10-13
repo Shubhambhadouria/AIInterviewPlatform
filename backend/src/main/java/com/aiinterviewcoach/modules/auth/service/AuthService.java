@@ -29,9 +29,12 @@ public class AuthService {
 	}
 
 	public AuthResponse register(RegisterRequest request) {
+		if (request.password().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72)
+			throw new BadRequestException("Password must be at most 72 UTF-8 bytes");
+		request = new RegisterRequest(request.fullName().trim(), request.email().trim().toLowerCase(java.util.Locale.ROOT), request.password());
 
 		if (userRepository.existsByEmail(request.email())) {
-			throw new RuntimeException("Email already registered");
+			throw new BadRequestException("Email already registered");
 		}
 
 		User user = User.builder().fullName(request.fullName()).email(request.email())
@@ -48,6 +51,7 @@ public class AuthService {
 	}
 
 	public AuthResponse login(LoginRequest request) {
+		request = new LoginRequest(request.email().trim().toLowerCase(java.util.Locale.ROOT), request.password());
 
 		User user = userRepository.findByEmail(request.email())
 				.orElseThrow(() -> new BadRequestException("Invalid email or password"));

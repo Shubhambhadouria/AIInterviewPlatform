@@ -1,0 +1,8 @@
+.gradle-user/
+.npm-cache/
+.production-check/
+.env
+.env.local
+backend/uploads/
+*.log
+!**/.env.example

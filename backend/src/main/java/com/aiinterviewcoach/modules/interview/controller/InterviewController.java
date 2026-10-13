@@ -20,15 +20,25 @@ import com.aiinterviewcoach.modules.interview.service.InterviewService;
 @RestController
 @RequestMapping("/api/interviews")
 public class InterviewController {
+	private final com.aiinterviewcoach.modules.interview.service.impl.InterviewServiceImpl sessions;
 
 	private final InterviewService interviewService;
 
-	public InterviewController(InterviewService interviewService) {
+	public InterviewController(InterviewService interviewService, com.aiinterviewcoach.modules.interview.service.impl.InterviewServiceImpl sessions) {
 		this.interviewService = interviewService;
+		this.sessions = sessions;
+	}
+	@GetMapping("/history")
+	public java.util.List<com.aiinterviewcoach.modules.interview.service.impl.InterviewServiceImpl.HistoryView> history(Authentication authentication) {
+		return sessions.history(authentication.getName());
+	}
+	@GetMapping("/{sessionId}")
+	public com.aiinterviewcoach.modules.interview.service.impl.InterviewServiceImpl.SessionView session(@PathVariable UUID sessionId, Authentication authentication) {
+		return sessions.getSession(sessionId, authentication.getName());
 	}
 
 	@PostMapping("/start")
-	public StartInterviewResponse startInterview(@RequestBody StartInterviewRequest request,
+	public StartInterviewResponse startInterview(@jakarta.validation.Valid @RequestBody StartInterviewRequest request,
 			Authentication authentication) {
 		return interviewService.startInterview(request, authentication.getName());
 	}

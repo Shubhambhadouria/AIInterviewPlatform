@@ -20,7 +20,7 @@ import com.aiinterviewcoach.modules.questionbank.service.FileStorageService;
 @Service
 public class LocalFileStorageServiceImpl implements FileStorageService {
 
-	private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf", "application/msword",
+	private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf",
 			"application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 
 	private final Path uploadDirectory;
@@ -50,7 +50,9 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
 
 			validateDestination(destination, uploadDirectory);
 
-			Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+			try (var input = file.getInputStream()) {
+				Files.copy(input, destination, StandardCopyOption.REPLACE_EXISTING);
+			}
 
 			return new StoredFile(storedFilename, originalFilename, file.getContentType(), file.getSize());
 
@@ -83,7 +85,9 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
 
 			validateDestination(destination, userUploadDirectory);
 
-			Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+			try (var input = file.getInputStream()) {
+				Files.copy(input, destination, StandardCopyOption.REPLACE_EXISTING);
+			}
 
 			String storageKey = userId + "/" + storedFilename;
 
@@ -132,8 +136,19 @@ public class LocalFileStorageServiceImpl implements FileStorageService {
 		String contentType = file.getContentType();
 
 		if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-			throw new FileStorageException("Only PDF, DOC, and DOCX files are supported");
+			throw new FileStorageException("Only PDF and DOCX files are supported");
 		}
+		if (file.getSize() > 10485760) throw new FileStorageException("Resume must be 10 MB or smaller");
+		String extension = getExtension(Optional.ofNullable(file.getOriginalFilename()).orElse(""));
+		if (!("application/pdf".equals(contentType) ? extension.equals(".pdf") : extension.equals(".docx")))
+			throw new FileStorageException("File extension must match the PDF or DOCX content type");
+		try (var input = file.getInputStream()) {
+			byte[] magic = input.readNBytes(5);
+			boolean valid = "application/pdf".equals(contentType)
+				? java.util.Arrays.equals(magic, "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII))
+				: magic.length >= 4 && magic[0] == 'P' && magic[1] == 'K' && magic[2] == 3 && magic[3] == 4;
+			if (!valid) throw new FileStorageException("File content does not match its declared type");
+		} catch (IOException ex) { throw new FileStorageException("Could not validate resume", ex); }
 	}
 
 	private String getExtension(String filename) {

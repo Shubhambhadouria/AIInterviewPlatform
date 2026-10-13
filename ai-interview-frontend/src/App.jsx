@@ -10,8 +10,10 @@ import ResultPage from "./pages/ResultPage";
 import StartInterviewPage from "./pages/StartInterviewPage";
 import ResumePreparationPage from "./components/resume/ResumePreparationPage";
 import QuestionBankPage from "./components/resume/QuestionBankPage";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/authState";
 import CandidateProfileReviewPage from "./pages/CandidateProfileReviewPage";
+import PreparationLibraryPage from "./pages/PreparationLibraryPage";
+import PreparationDetailPage from "./pages/PreparationDetailPage";
 
 function HomeRedirect() {
   const { isAuthenticated } = useAuth();
@@ -45,6 +47,8 @@ function App() {
           />
 
           <Route path="/question-bank/new" element={<QuestionBankPage />} />
+          <Route path="/question-banks" element={<PreparationLibraryPage />} />
+          <Route path="/question-banks/:bankId" element={<PreparationDetailPage />} />
 
           <Route
             path="/candidate-profiles/:profileId/review"

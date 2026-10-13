@@ -52,7 +52,7 @@ export default function ResumePreparationPage() {
       const response = await parseResume(resumeId);
       setParseResponse(response);
       setStep("parsed");
-      navigate(`/candidate-profiles/${profileId}/review`);
+      navigate(`/candidate-profiles/${response.candidateProfileId}/review`);
     } catch (requestError) {
       setStep("uploaded");
       setError(extractApiError(requestError));

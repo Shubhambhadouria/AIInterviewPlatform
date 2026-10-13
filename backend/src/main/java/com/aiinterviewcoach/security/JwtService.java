@@ -21,8 +21,15 @@ public class JwtService {
 	@Value("${jwt.expiration}")
 	private Long expiration;
 
+	@jakarta.annotation.PostConstruct
+	void validateConfiguration() {
+		if (secret == null || secret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32)
+			throw new IllegalStateException("JWT_SECRET must contain at least 32 UTF-8 bytes");
+		if (expiration == null || expiration <= 0) throw new IllegalStateException("JWT_EXPIRATION must be positive");
+	}
+
 	private SecretKey getSigningKey() {
-		return Keys.hmacShaKeyFor(secret.getBytes());
+		return Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 	}
 
 	public String generateToken(User user) {

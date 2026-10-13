@@ -22,6 +22,7 @@ public class InterviewQuestion {
 	// TECHNICAL, HR, SYSTEM_DESIGN, CODING, RESUME_BASED, JOB_MATCHING
 
 	private String difficulty;
+	private Integer displayOrder;
 	// EASY, MEDIUM, HARD
 
 	@Column(length = 5000)
@@ -30,10 +31,10 @@ public class InterviewQuestion {
 	@Column(length = 5000)
 	private String userAnswer;
 
-	@Column(length = 5000)
+	@Column(columnDefinition = "TEXT")
 	private String aiFeedback;
 	
-	@Column(length = 5000)
+	@Column(columnDefinition = "TEXT")
 	private String improvedAnswer;
 
 	private Integer score;

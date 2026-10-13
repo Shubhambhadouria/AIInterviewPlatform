@@ -32,7 +32,7 @@ public class CandidateProfileController {
 	private final CandidateProfileService candidateProfileService;
 
 	@Operation(summary = "Get candidate profile by resume")
-	@GetMapping("/resume/{resumeId}")
+	@GetMapping({"/resume/{resumeId}", "/{resumeId}"})
 	public CandidateProfileResponse getProfileByResume(
 
 			@PathVariable("resumeId") UUID resumeId,
@@ -52,7 +52,7 @@ public class CandidateProfileController {
 	}
 
 	@Operation(summary = "Update candidate profile", description = "Updates profile details and replaces the skills and projects collections")
-	@PutMapping("/resume/{resumeId}")
+	@PutMapping({"/resume/{resumeId}", "/{resumeId}"})
 	public CandidateProfileResponse updateProfile(
 
 			@PathVariable("resumeId") UUID resumeId,
@@ -65,7 +65,7 @@ public class CandidateProfileController {
 	}
 
 	@Operation(summary = "Confirm candidate profile", description = "Confirms that the profile information is accurate and ready for question generation")
-	@PostMapping("/resume/{resumeId}/confirm")
+	@PostMapping({"/resume/{resumeId}/confirm", "/{resumeId}/confirm"})
 	public CandidateProfileResponse confirmProfile(
 
 			@PathVariable("resumeId") UUID resumeId,

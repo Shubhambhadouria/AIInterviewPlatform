@@ -2,11 +2,11 @@ import axios from "axios";
 import { getToken, removeToken } from "../util/tokenStorage.js";
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   // headers: {
   //   "Content-Type": "application/json",
   // },
-  timeout: 30000,
+  timeout: 120000,
 });
 
 axiosInstance.interceptors.request.use(

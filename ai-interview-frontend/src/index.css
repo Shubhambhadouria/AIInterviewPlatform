@@ -372,3 +372,11 @@ a {
     gap: 12px;
   }
 }
+/* Preparation controls share the main application palette. */
+.preserve-lines { white-space: pre-wrap; }
+.preparation-question { margin: 1rem 0; }
+.preparation-question details { margin: 1rem 0; }
+.preparation-question summary { cursor: pointer; font-weight: 600; text-transform: capitalize; }
+.preparation-question pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; background: #f1f5f9; border-radius: .5rem; }
+.preparation-filters { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+fieldset { min-width: 0; border: 1px solid #dbe3ee; }

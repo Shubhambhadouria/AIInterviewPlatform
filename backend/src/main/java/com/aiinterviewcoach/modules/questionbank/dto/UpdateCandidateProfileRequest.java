@@ -7,22 +7,22 @@ import java.util.List;
 
 public record UpdateCandidateProfileRequest(
 
-		String fullName,
+		@jakarta.validation.constraints.Size(max=200) String fullName,
 
-		String professionalTitle,
+		@jakarta.validation.constraints.Size(max=200) String professionalTitle,
 
 		@Min(value = 0, message = "Experience cannot be negative") Integer totalExperienceMonths,
-		String professionalSummary,
+		@jakarta.validation.constraints.Size(max=10000) String professionalSummary,
 
-		String currentCompany,
+		@jakarta.validation.constraints.Size(max=200) String currentCompany,
 
-		String currentRole,
+		@jakarta.validation.constraints.Size(max=200) String currentRole,
 
-		String targetRole,
+		@jakarta.validation.constraints.Size(max=200) String targetRole,
 
-		List<@Valid CandidateSkillRequest> skills,
+		@jakarta.validation.constraints.Size(max=100) List<@Valid CandidateSkillRequest> skills,
 
-		List<@Valid CandidateProjectRequest> projects
+		@jakarta.validation.constraints.Size(max=30) List<@Valid CandidateProjectRequest> projects
 
 ) {
 }

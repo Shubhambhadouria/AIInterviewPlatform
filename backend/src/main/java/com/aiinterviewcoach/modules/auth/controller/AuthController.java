@@ -25,12 +25,12 @@ public class AuthController {
 	}
 
 	@PostMapping("/register")
-	public AuthResponse register(@RequestBody RegisterRequest request) {
+	public AuthResponse register(@jakarta.validation.Valid @RequestBody RegisterRequest request) {
 		return authService.register(request);
 	}
 
 	@PostMapping("/login")
-	public AuthResponse login(@RequestBody LoginRequest request) {
+	public AuthResponse login(@jakarta.validation.Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
 	}
 

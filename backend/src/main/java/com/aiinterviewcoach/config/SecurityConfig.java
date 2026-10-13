@@ -18,6 +18,10 @@ import com.aiinterviewcoach.security.JwtAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
+	@org.springframework.beans.factory.annotation.Value("${app.cors.origins:http://localhost:5173}")
+	private String allowedOrigins;
+	@org.springframework.beans.factory.annotation.Value("${app.ai.hourly-limit:60}")
+	private int aiHourlyLimit;
 
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -28,7 +32,7 @@ public class SecurityConfig {
 	private static final String[] PUBLIC_ENDPOINTS = { "/api/auth/register", "/api/auth/login",
 
 			// Swagger/OpenAPI
-			"/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**" };
+			"/actuator/health", "/actuator/health/**" };
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {
@@ -40,7 +44,7 @@ public class SecurityConfig {
 
 		CorsConfiguration configuration = new CorsConfiguration();
 
-		configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+		configuration.setAllowedOrigins(java.util.Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList());
 
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
@@ -61,10 +65,12 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
 		http.csrf(csrf -> csrf.disable()).cors(cors -> cors.configurationSource(corsConfigurationSource()))
+				.exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> response.sendError(401, "Authentication required")))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(
 						auth -> auth.requestMatchers(PUBLIC_ENDPOINTS).permitAll().anyRequest().authenticated())
-				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterAfter(new com.aiinterviewcoach.security.AiQuotaFilter(aiHourlyLimit), JwtAuthenticationFilter.class);
 
 		return http.build();
 	}

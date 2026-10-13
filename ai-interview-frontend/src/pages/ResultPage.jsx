@@ -78,7 +78,7 @@ function ResultPage() {
     <main className="page-container result-container">
       <section className="result-summary">
         <div>
-          <span className="eyebrow">Interview completed</span>
+          <span className="eyebrow">{result.status === "COMPLETED" ? "Interview completed" : "Interview progress"}</span>
           <h1>Your interview result</h1>
 
           <p>

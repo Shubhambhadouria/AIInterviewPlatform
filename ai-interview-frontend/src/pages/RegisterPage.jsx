@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import ErrorMessage from "../components/common/ErrorMessage";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authState";
 
 function RegisterPage() {
   const navigate = useNavigate();

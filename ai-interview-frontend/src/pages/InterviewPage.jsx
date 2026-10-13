@@ -1,234 +1,37 @@
-import { useMemo, useState } from "react";
-import {
-  Navigate,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "react-router";
-import { submitInterviewAnswer } from "../api/interviewApi";
-import ErrorMessage from "../components/common/ErrorMessage";
-
-function normalizeQuestion(source) {
-  if (!source) {
-    return null;
-  }
-
-  const question =
-    source.currentQuestion ??
-    source.question ??
-    source.nextQuestion ??
-    source.questions?.[0] ??
-    source;
-
-  if (!question) {
-    return null;
-  }
-
-  const questionId =
-    question.questionId ??
-    question.id ??
-    question.interviewQuestionId ??
-    source.questionId ??
-    null;
-
-  const questionText =
-    question.questionText ??
-    question.text ??
-    question.question ??
-    source.questionText ??
-    null;
-
-  return {
-    id: questionId,
-    text: questionText,
-
-    questionNumber:
-      source.currentQuestionNumber ??
-      source.questionNumber ??
-      question.questionNumber ??
-      1,
-
-    totalQuestions:
-      source.totalQuestions ??
-      question.totalQuestions ??
-      source.questions?.length ??
-      null,
-  };
-}
-
-function InterviewPage() {
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router";
+import { getInterviewSession, submitInterviewAnswer } from "../api/interviewApi";
+export default function InterviewPage() {
   const { sessionId } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const initialInterview = location.state?.interview;
-  const initialQuestion = useMemo(
-    () => normalizeQuestion(initialInterview),
-    [initialInterview],
-  );
-
-  const [question, setQuestion] = useState(initialQuestion);
-  const [answer, setAnswer] = useState("");
-  const [feedback, setFeedback] = useState(null);
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  if (!initialInterview && !question) {
-    return <Navigate to="/interview/start" replace />;
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    if (!answer.trim()) {
-      setError("Please enter your answer.");
-      return;
-    }
-
-    if (!question?.id) {
-      setError("Question ID is missing in the backend response.");
-      return;
-    }
-
-    setError("");
-    setSubmitting(true);
-
+  const [session,setSession] = useState(null);
+  const [answer,setAnswer] = useState("");
+  const [feedback,setFeedback] = useState(null);
+  const [busy,setBusy] = useState(false);
+  const [error,setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    getInterviewSession(sessionId).then(data => {if(active) setSession(data);})
+      .catch(err => {if(active) setError(err.message);});
+    return () => {active=false;};
+  },[sessionId]);
+  async function submit(e) {
+    e.preventDefault(); setBusy(true);setError("");
     try {
-      const response = await submitInterviewAnswer(sessionId, {
-        questionId: question.id,
-        answer: answer.trim(),
-      });
-
-      setFeedback({
-        score: response.score ?? response.aiScore,
-        aiFeedback:
-          response.aiFeedback ??
-          response.feedback ??
-          response.message,
-        strengths: response.strengths,
-        improvements:
-          response.improvements ??
-          response.areasForImprovement ??
-          response.missingPoints,
-      });
-
-      const completed =
-        response.completed === true ||
-        response.interviewCompleted === true ||
-        response.status === "COMPLETED";
-
-      if (completed) {
-        setTimeout(() => {
-          navigate(`/interview/${sessionId}/result`);
-        }, 1200);
-
-        return;
-      }
-
-      const nextQuestion = normalizeQuestion(
-        response.nextQuestion ?? response,
-      );
-
-      if (nextQuestion?.id && nextQuestion?.text) {
-        setQuestion(nextQuestion);
-        setAnswer("");
-      }
-    } catch (apiError) {
-      setError(
-        apiError.response?.data?.message ||
-          apiError.response?.data?.error ||
-          "Unable to submit the answer.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+      const response = await submitInterviewAnswer(sessionId,{questionId:session.questions[0].questionId,answer:answer.trim()});
+      setFeedback(response);
+      setSession({...session,status:response.completed ? "COMPLETED" : "IN_PROGRESS",answeredQuestions:session.answeredQuestions+1,questions:session.questions.slice(1)});
+      setAnswer("");
+    } catch(err) {setError(err.message);} finally {setBusy(false);}
   }
-
-  return (
-    <main className="page-container interview-container">
-      <section className="interview-header">
-        <div>
-          <span className="eyebrow">Live interview</span>
-          <h1>Technical Interview</h1>
-        </div>
-
-        {question?.totalQuestions && (
-          <span className="question-counter">
-            Question {question.questionNumber} of{" "}
-            {question.totalQuestions}
-          </span>
-        )}
-      </section>
-
-      <section className="question-card">
-        <span className="question-label">
-          Question {question?.questionNumber}
-        </span>
-
-        <h2>{question?.text}</h2>
-
-        <form onSubmit={handleSubmit} className="form">
-          <label>
-            Your answer
-            <textarea
-              value={answer}
-              onChange={(event) => setAnswer(event.target.value)}
-              rows="10"
-              placeholder="Explain your answer clearly, including examples and internal working where relevant."
-              disabled={submitting}
-              required
-            />
-          </label>
-
-          <div className="answer-footer">
-            <span>{answer.trim().length} characters</span>
-
-            <button
-              type="submit"
-              className="button button-primary"
-              disabled={submitting}
-            >
-              {submitting
-                ? "Gemini is evaluating..."
-                : "Submit Answer"}
-            </button>
-          </div>
-        </form>
-
-        <ErrorMessage message={error} />
-      </section>
-
-      {feedback && (
-        <section className="feedback-card">
-          <div className="feedback-heading">
-            <h2>Gemini feedback</h2>
-
-            {feedback.score !== undefined && (
-              <span className="score-badge">
-                {feedback.score}/10
-              </span>
-            )}
-          </div>
-
-          <p>{feedback.aiFeedback}</p>
-
-          {feedback.strengths && (
-            <div>
-              <h3>Strengths</h3>
-              <p>{String(feedback.strengths)}</p>
-            </div>
-          )}
-
-          {feedback.improvements && (
-            <div>
-              <h3>Areas to improve</h3>
-              <p>{String(feedback.improvements)}</p>
-            </div>
-          )}
-        </section>
-      )}
-    </main>
-  );
+  return <main className="page-container interview-container">
+    <section className="interview-header"><div><span className="eyebrow">Interview practice</span><h1>{session?.title || "Loading interview..."}</h1></div>
+      {session && <span className="question-counter">{session.answeredQuestions} of {session.totalQuestions} answered</span>}</section>
+    {error && <p role="alert" className="form-error">{error}</p>}
+    {feedback && <section className="feedback-card" aria-live="polite"><h2>Your feedback · {feedback.score}/10</h2><p>{feedback.feedback}</p>
+      <h3>Improved answer</h3><p className="preserve-lines">{feedback.improvedAnswer}</p></section>}
+    {session?.status === "COMPLETED" ? <section className="question-card"><h2>Interview complete</h2><Link className="button button-primary" to={`/interview/${sessionId}/result`}>View results</Link></section> :
+      session?.questions?.[0] && <section className="question-card"><span className="question-label">Question {session.answeredQuestions+1} of {session.totalQuestions}</span>
+      <h2>{session.questions[0].questionText}</h2><form className="form" onSubmit={submit}><label>Your answer<textarea rows="10" required maxLength="5000" value={answer} onChange={e => setAnswer(e.target.value)} disabled={busy} /></label>
+      <button className="button button-primary" disabled={busy || !answer.trim()}>{busy ? "Evaluating..." : "Submit answer"}</button></form></section>}
+  </main>;
 }
-
-export default InterviewPage;

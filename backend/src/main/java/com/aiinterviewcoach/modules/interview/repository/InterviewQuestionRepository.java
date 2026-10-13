@@ -10,4 +10,5 @@ import com.aiinterviewcoach.modules.interview.entity.InterviewSession;
 
 public interface InterviewQuestionRepository extends JpaRepository<InterviewQuestion, UUID> {
 	List<InterviewQuestion> findByInterviewSession(InterviewSession interviewSession);
+	List<InterviewQuestion> findByInterviewSessionOrderByDisplayOrderAscCreatedAtAsc(InterviewSession interviewSession);
 }

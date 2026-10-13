@@ -13,6 +13,26 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+	@ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+	public ResponseEntity<ErrorResponse> handleConflict(Exception ex, HttpServletRequest request) {
+		return buildErrorResponse(HttpStatus.CONFLICT, "This request conflicts with an existing record.", request.getRequestURI());
+	}
+	@ExceptionHandler({org.springframework.web.bind.MethodArgumentNotValidException.class,
+		org.springframework.http.converter.HttpMessageNotReadableException.class,
+		org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+	public ResponseEntity<ErrorResponse> handleValidation(Exception ex, HttpServletRequest request) {
+		String message = "Invalid request. Check the fields and try again.";
+		if (ex instanceof org.springframework.web.bind.MethodArgumentNotValidException invalid) {
+			message = invalid.getBindingResult().getFieldErrors().stream()
+				.map(error -> error.getField() + ": " + error.getDefaultMessage()).collect(java.util.stream.Collectors.joining("; "));
+		}
+		return buildErrorResponse(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
+	}
+	@ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+	public ResponseEntity<ErrorResponse> handleUploadSize(Exception ex, HttpServletRequest request) {
+		return buildErrorResponse(HttpStatus.PAYLOAD_TOO_LARGE, "Resume must be 10 MB or smaller", request.getRequestURI());
+	}
 
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex,
@@ -32,6 +52,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
+		log.error("Unhandled request failure for {}", request.getRequestURI(), ex);
 		return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again later.",
 				request.getRequestURI());
 	}

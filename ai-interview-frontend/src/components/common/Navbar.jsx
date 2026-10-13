@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authState";
 
 function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -23,7 +23,7 @@ function Navbar() {
             <Link to="/interview/start">Start Interview</Link>
             <Link to="/resume-preparation">Resume Preparation</Link>
 
-            <Link to="/question-bank/new">Question Bank</Link>
+            <Link to="/question-banks">Question Banks</Link>
 
             <span className="user-email">{user?.fullName || user?.email}</span>
 

@@ -43,6 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+        try {
         String email = jwtService.extractEmail(token);
 
         if (email != null &&
@@ -70,6 +71,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
+        } catch (io.jsonwebtoken.JwtException | IllegalArgumentException | org.springframework.security.core.userdetails.UsernameNotFoundException ex) {
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+            return;
+        }
         filterChain.doFilter(request, response);
     }
 }

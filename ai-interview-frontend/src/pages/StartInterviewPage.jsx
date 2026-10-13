@@ -1,127 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { startInterview } from "../api/interviewApi";
-import ErrorMessage from "../components/common/ErrorMessage";
-
-function StartInterviewPage() {
+export default function StartInterviewPage() {
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    role: "Java Backend Developer",
-    difficulty: "MEDIUM",
-    numberOfQuestions: 5,
-  });
-
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  function handleChange(event) {
-    const { name, value } = event.target;
-
-    setFormData((previous) => ({
-      ...previous,
-      [name]:
-        name === "numberOfQuestions"
-          ? Number(value)
-          : value,
-    }));
+  const [form, setForm] = useState({topic:"Java and Spring Boot",targetRole:"Java Backend Developer",experienceLevel:"INTERMEDIATE",totalQuestions:5});
+  const [busy,setBusy] = useState(false);
+  const [error,setError] = useState("");
+  async function submit(e) {
+    e.preventDefault(); setBusy(true); setError("");
+    try { const session = await startInterview(form); navigate(`/interview/${session.sessionId}`); }
+    catch(err) { setError(err.message); } finally { setBusy(false); }
   }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setError("");
-    setSubmitting(true);
-
-    try {
-      const response = await startInterview(formData);
-
-      const sessionId =
-        response.sessionId ??
-        response.interviewSessionId ??
-        response.id;
-
-      if (!sessionId) {
-        throw new Error(
-          "The backend response does not contain a session ID.",
-        );
-      }
-
-      navigate(`/interview/${sessionId}`, {
-        state: {
-          interview: response,
-        },
-      });
-    } catch (apiError) {
-      setError(
-        apiError.response?.data?.message ||
-          apiError.response?.data?.error ||
-          apiError.message ||
-          "Unable to start the interview.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <main className="page-container narrow-container">
-      <section className="form-card">
-        <span className="eyebrow">Interview configuration</span>
-        <h1>Start a new interview</h1>
-
-        <ErrorMessage message={error} />
-
-        <form onSubmit={handleSubmit} className="form">
-          <label>
-            Target role
-            <input
-              type="text"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              required
-            />
-          </label>
-
-          <label>
-            Difficulty
-            <select
-              name="difficulty"
-              value={formData.difficulty}
-              onChange={handleChange}
-            >
-              <option value="EASY">Easy</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HARD">Hard</option>
-            </select>
-          </label>
-
-          <label>
-            Number of questions
-            <input
-              type="number"
-              name="numberOfQuestions"
-              value={formData.numberOfQuestions}
-              onChange={handleChange}
-              min="1"
-              max="20"
-              required
-            />
-          </label>
-
-          <button
-            type="submit"
-            className="button button-primary"
-            disabled={submitting}
-          >
-            {submitting
-              ? "Generating questions..."
-              : "Start Interview"}
-          </button>
-        </form>
-      </section>
-    </main>
-  );
+  return <main className="page-container narrow-container"><section className="form-card">
+    <span className="eyebrow">Interview configuration</span><h1>Start a new interview</h1>
+    {error && <p role="alert" className="form-error">{error}</p>}
+    <form className="form" onSubmit={submit}>
+      <label>Topic<input required maxLength="200" value={form.topic} onChange={e => setForm({...form,topic:e.target.value})} /></label>
+      <label>Target role<input required maxLength="200" value={form.targetRole} onChange={e => setForm({...form,targetRole:e.target.value})} /></label>
+      <label>Experience level<select value={form.experienceLevel} onChange={e => setForm({...form,experienceLevel:e.target.value})}>
+        {["BEGINNER","INTERMEDIATE","ADVANCED"].map(level => <option key={level}>{level}</option>)}</select></label>
+      <label>Number of questions<input type="number" min="1" max="20" required value={form.totalQuestions} onChange={e => setForm({...form,totalQuestions:Number(e.target.value)})} /></label>
+      <button className="button button-primary" disabled={busy}>{busy ? "Generating questions..." : "Start interview"}</button>
+    </form></section></main>;
 }
-
-export default StartInterviewPage;

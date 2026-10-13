@@ -1,5 +1,9 @@
 # 🤖 AI Interview Platform
 
+For the supported production deployment, configuration, migration policy, and release checks, see [PRODUCTION.md](PRODUCTION.md).
+
+Local Docker startup: `docker compose --env-file .env.local -f compose.local.yaml up -d --build --wait`, then open http://localhost:8080. The ignored `.env.local` file needs `DATABASE_PASSWORD` and `JWT_SECRET` (at least 32 bytes); set `GEMINI_API_KEY` to enable AI features. Stop with `docker compose --env-file .env.local -f compose.local.yaml stop`. Local database and uploads persist in Docker volumes.
+
 An AI-powered interview preparation platform built using **Java, Spring Boot, React, PostgreSQL, Redis, Docker, Kubernetes, and Generative AI**.
 
 The platform helps candidates prepare for technical interviews by generating personalized questions from their resume, conducting mock interviews, evaluating answers using AI, and providing structured feedback.

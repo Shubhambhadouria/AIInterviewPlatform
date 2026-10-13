@@ -2,11 +2,10 @@ import { useRef, useState } from "react";
 
 const ACCEPTED_TYPES = [
   "application/pdf",
-  "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export default function ResumeDropzone({ file, onFileSelect, disabled = false }) {
   const inputRef = useRef(null);
@@ -19,12 +18,12 @@ export default function ResumeDropzone({ file, onFileSelect, disabled = false })
     if (!selectedFile) return;
 
     if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
-      setValidationError("Upload a PDF, DOC, or DOCX file.");
+      setValidationError("Upload a PDF or DOCX file.");
       return;
     }
 
     if (selectedFile.size > MAX_FILE_SIZE) {
-      setValidationError("The resume must be 5 MB or smaller.");
+      setValidationError("The resume must be 10 MB or smaller.");
       return;
     }
 
@@ -60,7 +59,7 @@ export default function ResumeDropzone({ file, onFileSelect, disabled = false })
         ref={inputRef}
         type="file"
         hidden
-        accept=".pdf,.doc,.docx"
+        accept=".pdf,.docx"
         onChange={(event) => validateAndSelect(event.target.files?.[0])}
       />
 

@@ -1,127 +1,25 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  getCurrentUser,
-  loginUser,
-  registerUser,
-} from "../api/authApi";
-import {
-  getToken,
-  removeToken,
-  saveToken,
-} from "../util/tokenStorage.js";
-
-const AuthContext = createContext(null);
-
-function extractToken(response) {
-  return (
-    response?.token ??
-    response?.accessToken ??
-    response?.jwtToken ??
-    null
-  );
-}
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [initializing, setInitializing] = useState(true);
-
-  const loadCurrentUser = useCallback(async () => {
-    const token = getToken();
-
-    if (!token) {
-      setInitializing(false);
-      return;
-    }
-
-    try {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-    } catch {
-      removeToken();
-      setUser(null);
-    } finally {
-      setInitializing(false);
-    }
-  }, []);
-
+import { useEffect, useState } from "react";
+import { getCurrentUser, loginUser, registerUser } from "../api/authApi";
+import { getToken, removeToken, saveToken } from "../util/tokenStorage";
+import { AuthContext } from "./authState";
+export function AuthProvider({children}) {
+  const [user,setUser] = useState(null);
+  const [initializing,setInitializing] = useState(() => Boolean(getToken()));
   useEffect(() => {
-    loadCurrentUser();
-  }, [loadCurrentUser]);
-
-  async function login(credentials) {
-    const response = await loginUser(credentials);
-    const token = extractToken(response);
-
-    if (!token) {
-      throw new Error("Login response does not contain a JWT token.");
-    }
-
-    saveToken(token);
-
-    const currentUser = response.user ?? {
-      email: credentials.email,
-      fullName: response.fullName,
-    };
-
-    setUser(currentUser);
-    return response;
+    let active=true;
+    if (!getToken()) return () => {active=false;};
+    getCurrentUser().then(data => {if(active) setUser(data);})
+      .catch(() => {if(active) {removeToken();setUser(null);}})
+      .finally(() => {if(active) setInitializing(false);});
+    return () => {active=false;};
+  },[]);
+  async function authenticate(action,payload) {
+    const data = await action(payload);
+    if (!data.token) throw new Error("Authentication response is missing a token.");
+    saveToken(data.token);setUser(data);return data;
   }
-
-  async function register(registerData) {
-    const response = await registerUser(registerData);
-    const token = extractToken(response);
-
-    if (token) {
-      saveToken(token);
-
-      setUser(
-        response.user ?? {
-          email: registerData.email,
-          fullName: registerData.fullName,
-        },
-      );
-    }
-
-    return response;
-  }
-
-  function logout() {
-    removeToken();
-    setUser(null);
-  }
-
-  const contextValue = useMemo(
-    () => ({
-      user,
-      initializing,
-      isAuthenticated: Boolean(user || getToken()),
-      login,
-      register,
-      logout,
-    }),
-    [user, initializing],
-  );
-
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider.");
-  }
-
-  return context;
+  const login = payload => authenticate(loginUser,payload);
+  const register = payload => authenticate(registerUser,payload);
+  function logout() {removeToken();setUser(null);}
+  return <AuthContext.Provider value={{user,initializing,isAuthenticated:Boolean(user),login,register,logout}}>{children}</AuthContext.Provider>;
 }
